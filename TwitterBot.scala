@@ -4,6 +4,8 @@ import io.finch.route._
 import io.finch._
 import com.twitter.finagle.{Service, Httpx}
 
+import scala.util.Properties
+
 object TwitterBot {
 
   val endpoint = Get /> hello
@@ -13,6 +15,7 @@ object TwitterBot {
   }
 
 	def main(args: Array[String]) {
-    val _ = Await.ready(Httpx.serve(":8080", endpoint.toService))
+    val port = Properties.envOrElse("PORT", "8080")
+    val _ = Await.ready(Httpx.serve(s":$port", endpoint.toService))
 	}
 }
