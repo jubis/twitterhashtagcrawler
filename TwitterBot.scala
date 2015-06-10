@@ -9,7 +9,7 @@ object TwitterBot {
   val endpoint = Get /> hello
 
   def hello() = new Service[HttpRequest, HttpResponse] {
-    def apply(req: HttpRequest) = Future(Ok("Hello! I'm TwitterBot"))
+    def apply(req: HttpRequest) = Future(Ok("Hello! I'm HashTagCrawler"))
   }
 
 	def main(args: Array[String]) {
