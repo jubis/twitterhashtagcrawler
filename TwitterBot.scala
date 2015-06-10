@@ -13,7 +13,6 @@ object TwitterBot {
   }
 
 	def main(args: Array[String]) {
-		println("Starting server")
     val _ = Await.ready(Httpx.serve(":8080", endpoint.toService))
 	}
 }
