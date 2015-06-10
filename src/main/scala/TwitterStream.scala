@@ -1,8 +1,5 @@
-import rx.Scheduler
-import rx.lang.scala.{Scheduler, Observable, Subscription}
-import rx.schedulers.Schedulers
+import rx.lang.scala.{Observable, Subscription}
 import twitter4j._
-import twitter4j.conf.ConfigurationBuilder
 
 class TwitterStatusStream {
 
@@ -14,16 +11,12 @@ class TwitterStatusStream {
 
     val listener = new StatusListener {
 
-      override def onStallWarning(stallWarning: StallWarning): Unit = println("Stall")
-
+      override def onStallWarning(stallWarning: StallWarning): Unit = ()
       override def onDeletionNotice(statusDeletionNotice: StatusDeletionNotice): Unit = ()
-
       override def onStatus(status: Status): Unit = observer.onNext(status)
-      override def onTrackLimitationNotice(i: Int): Unit = println("track limit")
-
-      override def onException(e: Exception): Unit = println("Exception")
-
-      override def onScrubGeo(l: Long, l1: Long): Unit = println("Geo")
+      override def onTrackLimitationNotice(i: Int): Unit = ()
+      override def onException(e: Exception): Unit = ()
+      override def onScrubGeo(l: Long, l1: Long): Unit = ()
     }
 
     twitterStream.addListener(listener)
