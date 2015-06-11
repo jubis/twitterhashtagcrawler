@@ -1,11 +1,13 @@
+import com.twitter
 import com.twitter.finagle.{Httpx, Service}
 import com.twitter.util.{Await, Future}
 import io.finch._
 import io.finch.response._
 import io.finch.route._
-import rx.lang.scala.Observable
+import rx.lang.scala.{Observer, Observable}
 import twitter4j.Status
 
+import com.twitter.util.Promise
 import scala.util.Properties
 
 object TwitterBot {
@@ -33,7 +35,14 @@ object TwitterBot {
 
   def tweets() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
-      db.latestTweets(10)
+      val promise = Promise[List[Tweet]]()
+
+      db.latestTweets(10).toList.subscribe(
+        tweets => promise.setValue(tweets),
+        ex => promise.setException(ex)
+      )
+
+      promise.map { tweets => Ok(tweets.toString) }
     }
   }
 
