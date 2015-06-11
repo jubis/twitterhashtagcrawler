@@ -26,7 +26,14 @@ object TwitterBot {
 
   val endpoint =
     (Get / "api" / "status" /> currentStatus) |
-      (Get / "api" / "test" /> hello)
+      (Get / "api" / "test" /> test) |
+      (Get /> hello)
+
+  def hello() = new Service[HttpRequest, HttpResponse] {
+    def apply(req: HttpRequest) = {
+      Future(Ok("This is it"))
+    }
+  }
 
   def currentStatus() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
@@ -34,7 +41,7 @@ object TwitterBot {
     }
   }
 
-  def hello() = new Service[HttpRequest, HttpResponse] {
+  def test() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
       Future(Ok("Test"))
     }
