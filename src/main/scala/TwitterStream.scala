@@ -5,12 +5,9 @@ class TwitterStatusStream {
 
   val twitterStream = new TwitterStreamFactory().getInstance()
 
-
   val observable: Observable[Status] = Observable.create(observer => {
-    val start = System.currentTimeMillis()
 
     val listener = new StatusListener {
-
       override def onStallWarning(stallWarning: StallWarning): Unit = ()
       override def onDeletionNotice(statusDeletionNotice: StatusDeletionNotice): Unit = ()
       override def onStatus(status: Status): Unit = observer.onNext(status)

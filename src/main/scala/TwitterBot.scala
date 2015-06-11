@@ -5,37 +5,43 @@ import io.finch.response._
 import io.finch.route._
 import rx.lang.scala.Observable
 import twitter4j.Status
-import scala.concurrent.ExecutionContext.Implicits.global
 
 import scala.util.Properties
 
 object TwitterBot {
 
-  var last: String = ""
-
   val str = TwitterStatusStream()
 
+  var last: String = "No tweets"
   val tags = Array("nationalicedteaday", "InThe90sIThought")
 
-  import scala.concurrent.duration._
   val result = tags.map(hashTagStream(_, str)).toList match {
     case obs1 :: obs2 :: tail => obs1.combineLatest(obs2)
   }
+
   result.subscribe { item =>
     println(item)
     last = item.toString
   }
 
-  val endpoint = Get /> hello
+  val endpoint =
+    (Get / "api" / "status" /> currentStatus) |
+      (Get / "api" / "test" /> hello)
 
-  def hello() = new Service[HttpRequest, HttpResponse] {
+  def currentStatus() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
-      println("start apply")
       Future(Ok(last))
     }
   }
 
+  def hello() = new Service[HttpRequest, HttpResponse] {
+    def apply(req: HttpRequest) = {
+      Future(Ok("Test"))
+    }
+  }
+
   case class HashTag(tag: String, tweet: String, count: Int) {
+
     def withCount(c: Int) = {
       this.copy(count = c)
     }
