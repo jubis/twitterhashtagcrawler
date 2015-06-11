@@ -10,6 +10,7 @@ import scala.util.Properties
 
 object TwitterBot {
 
+  val db = new DataQueries()
   val str = TwitterStatusStream()
 
   var last: String = "No tweets"
@@ -27,7 +28,14 @@ object TwitterBot {
   val endpoint =
     (Get / "api" / "status" /> currentStatus) |
       (Get / "api" / "test" /> test) |
+      (Get / "api" / "tweets" /> tweets) |
       (Get /> hello)
+
+  def tweets() = new Service[HttpRequest, HttpResponse] {
+    def apply(req: HttpRequest) = {
+      db.latestTweets(10)
+    }
+  }
 
   def hello() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
@@ -47,6 +55,23 @@ object TwitterBot {
     }
   }
 
+  def main(args: Array[String]) {
+    str.sample(tags)
+
+    val port = Properties.envOrElse("PORT", "8080")
+    val _ = Await.ready(Httpx.serve(s":$port", endpoint.toService))
+  }
+
+  def hashTagStream(tag: String, stream: TwitterStatusStream) = {
+    stream.stream
+      .map(HashTag.fromStatus(tag))
+      .flatMap(Observable.from(_))
+      .groupBy(_.tag)
+      .flatMap(_._2.zipWithIndex)
+      .map { case tuple: (HashTag, Int) => tuple._1.withCount(tuple._2 + 1) }
+  }
+
+
   case class HashTag(tag: String, tweet: String, count: Int) {
 
     def withCount(c: Int) = {
@@ -64,21 +89,5 @@ object TwitterBot {
         .filter(_ == tag.toLowerCase)
         .map(HashTag(_, status.getText, 0))
     }
-  }
-
-  def main(args: Array[String]) {
-    str.sample(tags)
-
-    val port = Properties.envOrElse("PORT", "8080")
-    val _ = Await.ready(Httpx.serve(s":$port", endpoint.toService))
-  }
-
-  def hashTagStream(tag: String, stream: TwitterStatusStream) = {
-    stream.stream
-      .map(HashTag.fromStatus(tag))
-      .flatMap(Observable.from(_))
-      .groupBy(_.tag)
-      .flatMap(_._2.zipWithIndex)
-      .map { case tuple: (HashTag, Int) => tuple._1.withCount(tuple._2 + 1) }
   }
 }
