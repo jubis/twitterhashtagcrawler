@@ -9,6 +9,9 @@ import rx.lang.scala.Observable
 import twitter4j.Status
 
 import scala.util.Properties
+import org.json4s._
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization.{read, write}
 
 object TwitterBot {
 
@@ -29,9 +32,9 @@ object TwitterBot {
 
   val endpoint =
     (Get / "api" / "status" /> currentStatus) |
-      (Get / "api" / "test" /> test) |
-      (Get / "api" / "tweets" /> tweets) |
-      (Get /> hello)
+    (Get / "api" / "test" /> test) |
+    (Get / "api" / "tweets" /> tweets) |
+    (Get /> hello)
 
   def tweets() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
@@ -42,7 +45,11 @@ object TwitterBot {
         ex => promise.setException(ex)
       )
 
-      promise.map { tweets => Ok(tweets.toString) }
+      implicit val formats = Serialization.formats(NoTypeHints)
+
+      promise
+        .map(write(_))
+        .map { tweets => Ok(tweets) }
     }
   }
 
