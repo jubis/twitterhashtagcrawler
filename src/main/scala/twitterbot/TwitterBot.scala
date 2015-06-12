@@ -49,7 +49,7 @@ object TwitterBot {
 
       promise
         .map(write(_))
-        .map { tweets => Ok(tweets) }
+        .map { tweets => Ok.withContentType(Some("application/json"))(tweets) }
     }
   }
 
