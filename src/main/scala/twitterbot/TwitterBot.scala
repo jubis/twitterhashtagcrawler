@@ -1,13 +1,13 @@
-import com.twitter
+package twitterbot
+
 import com.twitter.finagle.{Httpx, Service}
-import com.twitter.util.{Await, Future}
+import com.twitter.util.{Await, Future, Promise}
 import io.finch._
 import io.finch.response._
 import io.finch.route._
-import rx.lang.scala.{Observer, Observable}
+import rx.lang.scala.Observable
 import twitter4j.Status
 
-import com.twitter.util.Promise
 import scala.util.Properties
 
 object TwitterBot {
@@ -16,7 +16,7 @@ object TwitterBot {
   val str = TwitterStatusStream()
 
   var last: String = "No tweets"
-  val tags = Array("nationalicedteaday", "InThe90sIThought")
+  val tags = Array("seagames", "fifa16")
 
   val result = tags.map(hashTagStream(_, str)).toList match {
     case obs1 :: obs2 :: tail => obs1.combineLatest(obs2)
@@ -71,10 +71,11 @@ object TwitterBot {
     val _ = Await.ready(Httpx.serve(s":$port", endpoint.toService))
   }
 
-  def hashTagStream(tag: String, stream: TwitterStatusStream) = {
-    stream.stream
+  def hashTagStream(tag: String, twitterStream: TwitterStatusStream) = {
+    twitterStream.stream
       .map(HashTag.fromStatus(tag))
       .flatMap(Observable.from(_))
+      .map(db.storeTweet)
       .groupBy(_.tag)
       .flatMap(_._2.zipWithIndex)
       .map { case tuple: (HashTag, Int) => tuple._1.withCount(tuple._2 + 1) }

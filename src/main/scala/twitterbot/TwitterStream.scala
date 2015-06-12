@@ -1,3 +1,5 @@
+package twitterbot
+
 import rx.lang.scala.{Observable, Subscription}
 import twitter4j._
 
