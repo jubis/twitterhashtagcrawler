@@ -5,29 +5,47 @@ import com.twitter.util.{Await, Future, Promise}
 import io.finch._
 import io.finch.response._
 import io.finch.route._
+import org.json4s._
+import org.json4s.native.Serialization
+import org.json4s.native.Serialization.write
+import rx.exceptions.CompositeException
 import rx.lang.scala.Observable
 import twitter4j.Status
 
+import scala.collection.JavaConversions._
 import scala.util.Properties
-import org.json4s._
-import org.json4s.native.Serialization
-import org.json4s.native.Serialization.{read, write}
 
 object TwitterBot {
 
   val db = new DataQueries()
   val str = TwitterStatusStream()
 
-  var last: String = "No tweets"
-  val tags = Array("seagames", "fifa16")
+  val tags = Array("CelebApps", "labourdebate")
 
-  val result = tags.map(hashTagStream(_, str)).toList match {
-    case obs1 :: obs2 :: tail => obs1.combineLatest(obs2)
+  val fight = tags.map(hashTagStream(_, str)).toList match {
+    case obs1 :: obs2 :: _ => obs1.combineLatest(obs2)
   }
 
-  result.subscribe { item =>
-    println(item)
-    last = item.toString
+  val publishedFight = fight
+    .replay(1)
+    .refCount
+
+
+  publishedFight.subscribe(
+    println,
+    {
+      case error: CompositeException => error.getExceptions.map(_.getMessage).foreach(println)
+      case error => println(error.toString)
+    }
+  )
+
+  def nextToFuture[T](obs: Observable[T]): Future[T] = {
+    val promise = Promise[T]()
+    obs.take(1).subscribe(
+      promise.setValue,
+      promise.setException
+    )
+    promise
   }
 
   val endpoint =
@@ -38,18 +56,12 @@ object TwitterBot {
 
   def tweets() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
-      val promise = Promise[List[Tweet]]()
-
-      db.latestTweets(10).toList.subscribe(
-        tweets => promise.setValue(tweets),
-        ex => promise.setException(ex)
-      )
-
       implicit val formats = Serialization.formats(NoTypeHints)
 
-      promise
+      nextToFuture(db.latestTweets(10).toList)
         .map(write(_))
         .map { tweets => Ok.withContentType(Some("application/json"))(tweets) }
+        .handle { case error => InternalServerError(s"loading failed, ${error.getMessage}") }
     }
   }
 
@@ -61,7 +73,8 @@ object TwitterBot {
 
   def currentStatus() = new Service[HttpRequest, HttpResponse] {
     def apply(req: HttpRequest) = {
-      Future(Ok(last))
+      nextToFuture(publishedFight)
+        .map(next => Ok(next.toString))
     }
   }
 
@@ -72,6 +85,7 @@ object TwitterBot {
   }
 
   def main(args: Array[String]) {
+    //publishedFight.connect
     str.sample(tags)
 
     val port = Properties.envOrElse("PORT", "8080")

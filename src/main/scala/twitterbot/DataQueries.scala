@@ -44,8 +44,9 @@ class DataQueries {
 
   def latestTweets(n : Int) : Observable[Tweet] = {
 
-    db.stream(tweets.sortBy(_.timestamp).take(n).result)
-      .mapResult(Tweet.tupled).toObservable()
+    db.stream(tweets.sortBy(_.timestamp.desc).take(n).result)
+      .mapResult(Tweet.tupled)
+      .toObservable()
   }
 
   def storeTweet(tag : HashTag) : HashTag = {
